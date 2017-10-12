@@ -1,0 +1,53 @@
+#include <msp430FR5994.h>
+
+/*
+ * Ryan Drexel
+ * MSP430FR5994 Debouncing
+ * Created: 10 06 2017
+ * Updated: 10 11 2017
+ *
+ * Embedded Systems- Dr. Tang and Mr. T.
+ * main.c
+ */
+int main(void)
+
+{
+
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    P5REN|=BIT6;		//Enable pull up resistor on P5.6
+    P5OUT|=BIT6;		//Set pull up
+    P1DIR|=BIT0;		//Set P1.0 as output
+    P5IES|=BIT6;		//Interrupt on falling edge of P5.6
+    P5IE|=BIT6;			//Enable interrupt on P5.6
+
+    CCTL0 = CCIE;			// CCR0 enabled
+    CCR0 = 60000;			//Set CCR0 for TA
+    TACTL = TASSEL_2 + MC_0 + TACLR;    // SMCLK, stopped
+    TACTL|=(BIT6+BIT7);			//Clock divider = 8
+    return 0;
+
+}
+
+
+
+// Timer A0 interrupt service routine
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A (void)
+{
+   P5IE|=BIT6;	//Enable P5.6 interrupt again
+   TACTL&=~BIT4;//Stop timer
+   TACTL|=BIT2;	//Clear timer
+   P5IFG&=~BIT6;//Clear interrupt flag
+}
+
+//Port 5 ISR
+
+#pragma vector=PORT5_VECTOR
+__interrupt void Port_5(void)
+
+{
+    P1OUT^=BIT0;	//Toggle LED at output P1.0
+    P5IE&=~BIT6;	//Disable P5.6 interrupt
+    P5IFG&=~BIT6;	//Clear P5.6 interrupt flag
+    TACTL|=BIT4;	//Timer on up mode
+}

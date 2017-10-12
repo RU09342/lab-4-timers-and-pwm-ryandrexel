@@ -1,0 +1,55 @@
+#include <msp430FR5994.h>
+
+/*
+ * Ryan Drexel
+ * MSP430FR5994 Hardware PWM
+ * Created: 10 06 2017
+ * Updated: 10 11 2017
+ *
+ * Embedded Systems- Dr. Tang and Mr. T.
+ * main.c
+ */
+int main(void)
+
+{
+    WDTCTL = WDTPW + WDTHOLD;   // Stop Watchdog Timer
+    P5REN |= BIT6;  		//P5.6 resistor enable
+    P5OUT |= BIT6; 		//P5.6 resistor->pullup
+    P5IE |= BIT6;		//P5.6 interrupt enable
+    P5IES |= BIT6;		//P5.6 interrupt edge select set to falling edge
+    P1DIR |= BIT0;		//P1.0 set to output TA0.1
+    P1SEL |= BIT0;		//P1.0 output TA0.1
+
+    TA0CCR0 = 12500;		// Frequency = 10 Hz
+    TA0CCTL1 = OUTMOD_3;	// CCR1 on set/reset mode
+    TA0CCR1 = 0; 		// Full duty cycle
+    TA0CTL |= (BIT6 + BIT7);	// Divide timer clk by 8
+    TA0CTL = TASSEL_2 + MC_1;	// SMCLK, up mode
+    TA1CCTL0 = CCIE;		// CCR0 interrupt enabled
+    TA1CCR0 = 40000;		// Set CCR0 of TA
+    TA1CTL = TASSEL_2 + MC_0 + TACLR;// SMCLK, stopped
+    TA1CTL |= (BIT6 + BIT7);	//Divide clock by 8
+
+}
+//Port 1 ISR
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void)
+{
+    TA0CCR1 = TA0CCR1 + 1250;	//Subtract 10% duty cycle on time
+    if (TA0CCR1 > 12500)	//Duty cycle overflow
+    {
+        TA0CCR1 = 0;		//Reset to full duty
+    }
+    P5IE &= ~BIT6;          	//Disable interrupt
+    P5IFG &= ~BIT1;             //Clear interrupt flag
+    TA1CTL |= BIT4;             //Timer on up mode
+}
+//Timer1 A0 ISR
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void timer(void)
+{
+    P5IE |= BIT6;             	//Re-enable P5.6 interrupts
+    TA1CTL &= ~BIT4;            //Stop timer
+    TA1CTL |= BIT2;             //Clear timer
+    P5IFG &= ~BIT1;             //Clear interrupt flag
+}

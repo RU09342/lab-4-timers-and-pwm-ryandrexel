@@ -1,0 +1,53 @@
+#include <msp430FR2311.h>
+
+/*
+ * Ryan Drexel
+ * MSP430FR2311 Debouncing
+ * Created: 10 06 2017
+ * Updated: 10 11 2017
+ *
+ * Embedded Systems- Dr. Tang and Mr. T.
+ * main.c
+ */
+int main(void)
+
+{
+
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    P1REN|=BIT1;		//Enable pull up resistor on P1.1
+    P1OUT|=BIT1;		//Set pull up
+    P1DIR|=BIT0;		//Set P1.0 as output
+    P1IES|=BIT1;		//Interrupt on falling edge of P1.1
+    P1IE|=BIT1;			//Enable interrupt on P1.1
+
+    CCTL0 = CCIE;			// CCR0 enabled
+    CCR0 = 60000;			//Set CCR0 for TA
+    TACTL = TASSEL_2 + MC_0 + TACLR;    // SMCLK, stopped
+    TACTL|=(BIT6+BIT7);			//Clock divider = 8
+    return 0;
+
+}
+
+
+
+// Timer A0 interrupt service routine
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A (void)
+{
+   P1IE|=BIT1;	//Enable P1.1 interrupt again
+   TACTL&=~BIT4;//Stop timer
+   TACTL|=BIT2;	//Clear timer
+   P1IFG&=~BIT1;//Clear interrupt flag
+}
+
+//Port 1 ISR
+
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void)
+
+{
+    P1OUT^=BIT0;	//Toggle LED at output P1.0
+    P1IE&=~BIT1;	//Disable P1.1 interrupt
+    P1IFG&=~BIT1;	//Clear P1.1 interrupt flag
+    TACTL|=BIT4;	//Timer on up mode
+}

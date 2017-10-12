@@ -1,15 +1,19 @@
-# Hardware PWM
-Now that you have done the software version of PWM, now it is time to start leveraging the other features of these Timer Modules.
+# README for Hardware PWM
 
-## Task
-You need to replicate the same behavior as in the software PWM, only using the Timer Modules ability to directly output to a GPIO Pin instead of managing them in software. 
+Ryan E. Drexel
+	
+	Created 11 October 2017
+	Updated 11 October 2017
 
-### Hints 
-Read up on the P1SEL registers as well as look at the Timer modules ability to multiplex.
+Embedded Systems- Dr. Tang and Mr. T.
 
-## Extra Work
-### Using ACLK
-Some of these microprocessors have a built in ACLK which is extremely slow compared to your up to 25MHz available on some of them. What is the overall impact on the system when using this clock? Can you actually use your PWM code with a clock that slow?
-
-### Ultra Low Power
-Using a combination of ACLK, Low Power Modes, and any other means you may deem necessary, optimize this PWM code to run at 50% duty cycle with a LED on the MSP430FR5994. In particular, time how long your code can run on the fully charged super capacitor. You do not need to worry about the button control in this case, and you will probably want to disable all the GPIO that you are not using (nudge, nudge, hint, hint).
+Hardware PWM is a C language program designed to run on five MSP430 microprocessors (listed below)
+	MSP430G2553
+	MSP430FR6989
+	MSP430F5529
+	MSP430FR2311
+	MSP430FR5994
+Hardware PWM outputs a modulated value of the actual timer register. The duty cycle is the amount of time,
+relative to the timer period, that the signal is high. If the duty cycle capture compare register is equal to 
+CCR0 (or 0), then the duty cycle is full, or on 100% of the time. As duty cycle CCR decreases, so does the "on"
+time of the output pin, and the perceived brightness of the LED decreases.

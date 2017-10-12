@@ -1,0 +1,75 @@
+#include <msp430FR5994.h>
+/*
+ * Ryan Drexel
+ * MSP430FR5994 Software PWM
+ * Created: 10 06 2017
+ * Updated: 10 11 2017
+ *
+ * Embedded Systems- Dr. Tang and Mr. T.
+ * main.c
+ */
+
+int main(void)
+
+{
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    TA0CTL|=BIT1;		//Enable Timer A0 interrupt
+    P1REN|=BIT1;		//Enable resistor at P1.1
+    P1OUT|=BIT1;		//Selects pullup at P1.1
+    P1DIR|=BIT0;		//Sets P1.0 as output
+    P1IES|=BIT1;		//Interrupt on falling edge
+    P1IE|=BIT1;			//Enable interrupt
+
+    TA0CCTL0 = CCIE;		// CCR0 interrupt enabled
+    TA0CCTL1 = CCIE;		//Enable Timer A0, capture/compare 1 interrupts
+    TA0CTL|=(BIT6+BIT7);	//Divide clock by 8
+    TA0CCR0 = 12500;		//10 Hz
+    TA0CCR1=0;			//Full duty
+    TA0CTL = TASSEL_2 + MC_1 + TACLR;  	// SMCLK, upmode
+    TA1CCTL0 = CCIE; 			// CCR0 interrupt enabled timer A1
+    TA1CCR0 = 60000;			//Set CCR0 of TA
+    TA1CTL = TASSEL_2 + MC_0 + TACLR;	// SMCLK, stopped timerA1
+    TA1CTL|=(BIT6+BIT7);		//Clock divider = 8
+    return 0;
+}
+
+//Port 1 interrupt service routine
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void)
+{
+    TA0CCR1=TA0CCR1+1250;	//Reduce duty by 10%
+
+    if(TA0CCR1>12500)		//Duty cycle overflow
+    {
+        TA0CCR1=0;		//Set to full duty
+    }
+
+    P1IE&=~BIT1;//Disable P1.1 interrupt
+    P1IFG&=~BIT1;//Clear P1.1 interrupt flag
+    TA1CTL|=BIT4;//Turn timer to up mode
+}
+
+// Timer A0 interrupt service routine
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A0 (void)
+{
+    P1OUT&=~BIT0;		//Turn off output
+}
+
+// Timer A1 interrupt service routine
+#pragma vector=TIMER0_A1_VECTOR
+__interrupt void Timer_A1 (void)
+{
+    P1OUT|=BIT0;	//Set P1.0 output
+    TA0CCTL1&=~BIT0;	//Clear Timer A0 CCR1 interrupt flag
+}
+
+//Timer1 A1 ISR
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void Debounce(void)
+{
+    P1IE|=BIT1;			//Reset P1.1 interrupts
+    TA1CTL&=~(BIT5+BIT4);	//Stop timer
+    TA1CTL|=BIT2;		//Clear timer
+    P1IFG&=~BIT1;		//Clear the interrupt flag
+}
